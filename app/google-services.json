@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "548528881036",
+    "project_id": "routetracker-354204",
+    "storage_bucket": "routetracker-354204.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548528881036:android:0258012fdea76afdd0eaa9",
+        "android_client_info": {
+          "package_name": "com.example.routetrackingapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "548528881036-48sdnpvvjuo7cjqnobi794njfl70d2b1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCP_SuPk3CUn-klF-KWZxv4IRibH0Wb_xE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "548528881036-48sdnpvvjuo7cjqnobi794njfl70d2b1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
