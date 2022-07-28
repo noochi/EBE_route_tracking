@@ -17,6 +17,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -35,12 +36,25 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.*;
+import com.google.firebase.database.core.utilities.Tree;
 import com.google.gson.Gson;
 
+import java.lang.reflect.Field;
+import java.sql.Array;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
 
@@ -52,7 +66,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationManager locationManager;
     private final int MIN_TIME = 1000; // 1 sec
     private final int MIN_DISTANCE = 1; // 1 meter
-    Marker myMarker;
     private Location userLocation;
     private Polyline gpsTrack;
     private FloatingActionButton startTrackingBtn;
@@ -68,6 +81,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private TextView distance;
     private TextView speed;
     private double currentSpeed;
+    private HashMap<String, List<LatLng>> latLngMap;
+    private String[] keys;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +101,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         assert mapFragment != null;
         ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();
         mapFragment.getMapAsync(this);
+
+        latLngMap = new HashMap<String, List<LatLng>>();
+        keys = new String[3];
 
         startTrackingBtn = findViewById(R.id.startButton);
         stopTrackingBtn = findViewById(R.id.stopButton);
@@ -288,6 +306,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (userLocation != null) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 14f));
         }
+        getNearestRoutes(userLocation);
+
         readChanges();
     }
 
@@ -337,9 +357,98 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void getNearestRoutes(Location location) {
-
         // Write a message to the database
         DatabaseReference myRef = db.getReference().child("Routes");
-        myRef.orderByChild("meanLatLng").equals(location);
+        myRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                checkMeanLatLng((Map<String, Object>) snapshot.getValue(), location);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    public void checkMeanLatLng(Map<String, Object> routes, Location location) {
+
+        Map<String, Double> map = new HashMap<>();
+        String key = "";
+        Double distance = 0.;
+        for (Map.Entry<String, Object> entry: routes.entrySet()) {
+            Map singleRoute = (Map) entry.getValue();
+            key = entry.getKey();
+            HashMap<String, Double> hash = (HashMap<String, Double>) singleRoute.get("meanLatLng");
+            distance = Math.abs(location.getLatitude()-hash.get("latitude")) + Math.abs(location.getLongitude()-hash.get("longitude"));
+            map.put(key,distance);
+        }
+        LinkedHashMap<String, Double> sortedMap = new LinkedHashMap<>();
+        map.entrySet().stream().sorted(Map.Entry.comparingByValue())
+                .forEachOrdered(x -> sortedMap.put(x.getKey(),x.getValue()));
+
+        getRoutesToDisplay(sortedMap);
+
+    }
+
+    private void getRoutesToDisplay(Map<String,Double> sortedMap) {
+        int k = 3;
+        List<LatLng> listofLatLng = new ArrayList<>();
+        DatabaseReference myRef = db.getReference().child("Routes");
+        for (int i = 0; i<k; i++){
+            myRef.child((String) sortedMap.keySet().toArray()[i])
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            latLngMap.clear();
+                            String snapshotKey = snapshot.getKey();
+                            Map hash = (Map) snapshot.getValue();
+                            ArrayList<HashMap<String, Double>> routeData = (ArrayList<HashMap<String, Double>>) hash.get("routeData");
+
+                            // Route Data is HashMap with latitude / longitude as key
+
+                            for (HashMap<String, Double> routeEntry: routeData) {
+                                LatLng latLng = new LatLng(routeEntry.get("latitude"),routeEntry.get("longitude"));
+                                listofLatLng.add(latLng);
+                            }
+                            if(latLngMap != null) {
+                                latLngMap.put(snapshotKey, listofLatLng);
+                            }
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+
+            keys[i] = (String) sortedMap.keySet().toArray()[i];
+
+        }
+        if(latLngMap != null && !latLngMap.isEmpty()) {
+            Polyline polyline1;
+            PolylineOptions polylineOptions1 = new PolylineOptions();
+            polylineOptions1.color(Color.CYAN);
+            polylineOptions1.width(8);
+            polyline1 = mMap.addPolyline(polylineOptions1);
+            polyline1.setPoints(latLngMap.get(keys[0]));
+
+            Polyline polyline2;
+            PolylineOptions polylineOptions2 = new PolylineOptions();
+            polylineOptions1.color(Color.CYAN);
+            polylineOptions1.width(8);
+            polyline2 = mMap.addPolyline(polylineOptions2);
+            polyline2.setPoints(Objects.requireNonNull(latLngMap.get(keys[1])));
+
+            Polyline polyline3;
+            PolylineOptions polylineOptions3 = new PolylineOptions();
+            polylineOptions3.color(Color.CYAN);
+            polylineOptions3.width(8);
+            polyline3 = mMap.addPolyline(polylineOptions3);
+            polyline3.setPoints(Objects.requireNonNull(latLngMap.get(keys[2])));
+        }
     }
 }
