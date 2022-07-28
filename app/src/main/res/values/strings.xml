@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Track n\' Share</string>
+    <string name="title_activity_maps">MapsActivity</string>
+    <string name="title_activity_maps2">MapsActivity2</string>
+    <string name="formTitle">Neue Route erstellen</string>
+    <string name="routeName">Name der Route</string>
+</resources>
