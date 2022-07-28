@@ -336,8 +336,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         reference.setValue(location);
     }
 
-    public void createUsers() {
+    public void getNearestRoutes(Location location) {
+
         // Write a message to the database
-        //DatabaseReference myRef = db.getReference("users");
+        DatabaseReference myRef = db.getReference().child("Routes");
+        myRef.orderByChild("meanLatLng").equals(location);
     }
 }

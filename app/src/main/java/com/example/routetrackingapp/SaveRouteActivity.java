@@ -95,12 +95,13 @@ public class SaveRouteActivity extends FragmentActivity implements OnMapReadyCal
 
         nameEditText = findViewById(R.id.routeName);
         timeView = findViewById(R.id.timeView);
-        elevationView = findViewById(R.id.elevationView);
+        //elevationView = findViewById(R.id.elevationView);
         tempoView = findViewById(R.id.tempoView);
         kmView = findViewById(R.id.kmView);
 
         timeView.setText(formatTime(time));
         kmView.setText(formatDistance(distance));
+        tempoView.setText(formatTempo(time));
     }
 
 
@@ -162,9 +163,17 @@ public class SaveRouteActivity extends FragmentActivity implements OnMapReadyCal
         return String.format("%02d", hours) + ":" + String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
     }
 
+    private String formatTempo(double time) {
+        int rounded = (int) Math.round(time);
+        int secondsPerKm = (int) (rounded/(distance)*1000);
+        int minutes = ((secondsPerKm % 86400) % 3600) / 60;
+        int seconds = ((secondsPerKm % 86400) % 3600) % 60;
+        return String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
+    }
+
     private String formatDistance(double distanceRun) {
         int km = (int) (distanceRun * 0.001);
-        int meter = (int) (distanceRun % 1000);
+        int meter = (int) ((distanceRun % 1000)/10);
         return km + "," + String.format("%02d", meter);
     }
 
